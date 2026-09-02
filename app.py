@@ -1,538 +1,112 @@
-"""
-Algoritmo: inventario_biblioteca
-Traduccion de PSeInt a Python, conservando la logica original.
-"""
+import streamlit as st
 
-import os
-
-
-def limpiar_pantalla():
-    os.system('cls' if os.name == 'nt' else 'clear')
-
-
-def pausa(mensaje="Presione ENTER para continuar."):
-    input(mensaje)
-
-
-def leer_entero(mensaje):
-    while True:
-        try:
-            return int(input(mensaje))
-        except ValueError:
-            print("Debe ingresar un numero entero valido.")
-
-
-def main():
-    # ------------------------------------------------------------
-    # Datos iniciales (equivalentes a los arreglos del PSeInt)
-    # ------------------------------------------------------------
-    libros = [
-        "Batman: Year One",
-        "Resident Evil Archives",
-        "El arte de crear",
-        "El Principito",
-        "El Arte de la Guerra",
-        "Cien Años de Soledad",
-        "Don Quijote",
-        "1984",
-        "Fahrenheit 451",
-        "Dracula",
-    ]
-    stock = [2] * 10  # indice 0 = libro 1, ... indice 9 = libro 10
-
-    # usuarios: lista de diccionarios {nombre, codigo, telefono}
-    usuarios = [
+# Inicializar los datos en la memoria de la sesión web
+if "usuarios" not in st.session_state:
+    st.session_state.usuarios = [
         {"nombre": "Usuario 1/ Neithan Durant", "codigo": "1234", "telefono": "99999999"},
         {"nombre": "Usuario 2/ Jose Carranza", "codigo": "1010", "telefono": "88888888"},
     ]
+if "libros" not in st.session_state:
+    st.session_state.libros = [
+        "Batman: Year One", "Resident Evil Archives", "El arte de crear",
+        "El Principito", "El Arte de la Guerra", "Cien Años de Soledad",
+        "Don Quijote", "1984", "Fahrenheit 451", "Dracula"
+    ]
+if "stock" not in st.session_state:
+    st.session_state.stock = [2] * 10
+if "prestamos" not in st.session_state:
+    st.session_state.prestamos = []
+if "logged_user" not in st.session_state:
+    st.session_state.logged_user = None
 
-    # prestamos: lista de diccionarios
-    # {usuario, libro (id 1-10), dia, mes, anio,
-    #  venc_dia, venc_mes, venc_anio, estado, cargo}
-    prestamos = []
+st.title("📚 Sistema de Gestión de Biblioteca")
 
-    salir_sistema = False
+# ----------------- ACCESO / LOGIN -----------------
+if not st.session_state.logged_user:
+    st.subheader("Acceso de Usuario")
+    codigo = st.text_input("Ingrese su código de usuario (Ej: 1234 o 1010):")
+    
+    if st.button("Iniciar Sesión"):
+        usuario_valido = next((u for u in st.session_state.usuarios if u["codigo"] == codigo), None)
+        if usuario_valido:
+            st.session_state.logged_user = codigo
+            st.success(f"¡Acceso correcto! Bienvenido/a, {usuario_valido['nombre']}")
+            st.rerun()
+        else:
+            st.error("El código no está registrado.")
 
-    # ------------------------------------------------------------
-    # Bucle principal
-    # ------------------------------------------------------------
-    while not salir_sistema:
+# ----------------- MENU PRINCIPAL (SI HAY SESION) -----------------
+else:
+    st.sidebar.success(f"Sesión activa: {st.session_state.logged_user}")
+    if st.sidebar.button("Cerrar Sesión"):
+        st.session_state.logged_user = None
+        st.rerun()
 
-        acceso = False
-        codigo_ingresado = ""
+    menu = st.sidebar.selectbox("Menú de Opciones", [
+        "Ver catálogo", 
+        "Solicitar préstamo", 
+        "Ver usuarios", 
+        "Devolver libro", 
+        "Ver alertas"
+    ])
 
-        # --------------------------------------------------------
-        # Pantalla de acceso
-        # --------------------------------------------------------
-        while not acceso and not salir_sistema:
-
-            limpiar_pantalla()
-            print("=========================================")
-            print("          BIBLIOTECA - ACCESO")
-            print("=========================================")
-            print("1. Tengo una cuenta")
-            print("2. Crear una cuenta")
-            print("3. Salir")
-            print("-----------------------------------------")
-            tiene_cuenta = input("Seleccione una opcion: ")
-
-            if tiene_cuenta == "1":
-                limpiar_pantalla()
-                print("=========================================")
-                print("        INGRESO A LA BIBLIOTECA")
-                print("=========================================")
-
-                usuario_encontrado = False
-
-                while not usuario_encontrado and not acceso:
-
-                    print("Ingrese su codigo de usuario.")
-                    print("Escriba 0 para regresar al inicio.")
-                    print("-----------------------------------------")
-                    codigo_ingresado = input()
-
-                    if codigo_ingresado == "0":
-                        codigo_ingresado = ""
-                        usuario_encontrado = True  # sale del bucle interno hacia el menu de acceso
-
-                    else:
-                        usuario_encontrado = any(
-                            u["codigo"] == codigo_ingresado for u in usuarios
-                        )
-
-                        if usuario_encontrado:
-                            acceso = True
-                            print()
-                            print("=========================================")
-                            print("          ACCESO CORRECTO")
-                            print("=========================================")
-                            print("Bienvenido/a a la biblioteca.")
-                            print("=========================================")
-                            pausa()
-
-                        else:
-                            print()
-                            print("=========================================")
-                            print("             ALERTA")
-                            print("=========================================")
-                            print("El codigo no esta registrado.")
-                            print("=========================================")
-                            print()
-                            print("1. Intentar nuevamente")
-                            print("2. Crear una cuenta")
-                            print("3. Regresar al inicio")
-                            print("-----------------------------------------")
-                            opcion_acceso = leer_entero("Seleccione una opcion: ")
-
-                            if opcion_acceso == 1:
-                                limpiar_pantalla()
-                                print("=========================================")
-                                print("        INTENTAR NUEVAMENTE")
-                                print("=========================================")
-                                print()
-                                usuario_encontrado = False
-
-                            elif opcion_acceso == 2:
-                                limpiar_pantalla()
-                                print("=========================================")
-                                print("             CREAR CUENTA")
-                                print("=========================================")
-                                nombre_ingresado = input("Ingrese su nombre completo: ")
-                                telefono_ingresado = input("Ingrese su numero de telefono: ")
-
-                                tam = len(telefono_ingresado)
-
-                                if tam >= 4:
-                                    codigo_ingresado = telefono_ingresado[tam - 4:tam]
-                                    usuarios.append({
-                                        "nombre": nombre_ingresado,
-                                        "codigo": codigo_ingresado,
-                                        "telefono": telefono_ingresado,
-                                    })
-
-                                    usuario_encontrado = True
-                                    acceso = True
-
-                                    print()
-                                    print("=========================================")
-                                    print("          REGISTRO EXITOSO")
-                                    print("=========================================")
-                                    print("Nombre:", nombre_ingresado)
-                                    print("Telefono:", telefono_ingresado)
-                                    print("Codigo de usuario:", codigo_ingresado)
-                                    print("=========================================")
-                                    pausa()
-
-                                else:
-                                    print()
-                                    print("El telefono debe tener al menos 4 digitos.")
-                                    pausa()
-                                    usuario_encontrado = False
-
-                            elif opcion_acceso == 3:
-                                usuario_encontrado = True
-                                acceso = False
-
-                            else:
-                                print("Opcion no valida.")
-                                pausa()
-                                usuario_encontrado = False
-
-            elif tiene_cuenta == "2":
-                limpiar_pantalla()
-                print("=========================================")
-                print("             CREAR CUENTA")
-                print("=========================================")
-                nombre_ingresado = input("Ingrese su nombre completo: ")
-                telefono_ingresado = input("Ingrese su numero de telefono: ")
-
-                tam = len(telefono_ingresado)
-
-                if tam >= 4:
-                    codigo_ingresado = telefono_ingresado[tam - 4:tam]
-                    usuarios.append({
-                        "nombre": nombre_ingresado,
-                        "codigo": codigo_ingresado,
-                        "telefono": telefono_ingresado,
-                    })
-
-                    acceso = True
-
-                    print()
-                    print("=========================================")
-                    print("          REGISTRO EXITOSO")
-                    print("=========================================")
-                    print("Nombre:", nombre_ingresado)
-                    print("Telefono:", telefono_ingresado)
-                    print("Codigo de usuario:", codigo_ingresado)
-                    print("=========================================")
-                    pausa()
-
-                else:
-                    print()
-                    print("El telefono debe tener al menos 4 digitos.")
-                    pausa()
-
-            elif tiene_cuenta == "3":
-                print()
-                print("Gracias por utilizar la biblioteca.")
-                salir_sistema = True
-
+    # 1. Ver Catálogo
+    if menu == "Ver catálogo":
+        st.header("📖 Catálogo de Libros")
+        for i in range(10):
+            disp = st.session_state.stock[i]
+            if disp > 0:
+                st.write(f"*{i + 1}. {st.session_state.libros[i]}* — Disponibles: {disp}")
             else:
-                print()
-                print("Opcion no valida.")
-                print("Use 1, 2 o 3.")
-                pausa()
-
-        # --------------------------------------------------------
-        # Menu principal (una vez con acceso concedido)
-        # --------------------------------------------------------
-        if acceso and not salir_sistema:
-
-            op = "1"
-
-            while op != "0" and acceso:
-
-                limpiar_pantalla()
-                print("=========================================")
-                print("          GESTION DE BIBLIOTECA")
-                print("=========================================")
-                print("Codigo de usuario:", codigo_ingresado)
-                print("-----------------------------------------")
-                print("1. Ver catalogo")
-                print("2. Solicitar prestamo")
-                print("3. Ver usuarios")
-                print("4. Devolver libro")
-                print("5. Ver alertas")
-                print("0. Cerrar sesion")
-                print("-----------------------------------------")
-                op = input("Seleccione una opcion: ")
-
-                # ---------------- 1. Ver catalogo ----------------
-                if op == "1":
-                    limpiar_pantalla()
-                    print("=========================================")
-                    print("          CATALOGO DE LIBROS")
-                    print("=========================================")
-
-                    for i in range(10):
-                        if stock[i] > 0:
-                            print(f"{i + 1}. {libros[i]} | Disponibles: {stock[i]}")
-                        else:
-                            print(f"{i + 1}. {libros[i]} | NO DISPONIBLE")
-
-                    print("=========================================")
-                    print("El numero indica cuantos ejemplares quedan.")
-                    pausa("Presione ENTER para regresar.")
-
-                # ---------------- 2. Solicitar prestamo ----------------
-                elif op == "2":
-                    limpiar_pantalla()
-                    print("=========================================")
-                    print("          SOLICITAR PRESTAMO")
-                    print("=========================================")
-
-                    for u in usuarios:
-                        if u["codigo"] == codigo_ingresado:
-                            print("Usuario:", u["nombre"])
-                            print("Telefono:", u["telefono"])
-
-                    print("Codigo:", codigo_ingresado)
-                    print("-----------------------------------------")
-                    cantidad_libros = leer_entero("Cuantos libros desea sacar? (1 a 5) ")
-
-                    if 1 <= cantidad_libros <= 5:
-
-                        dia_prestamo = leer_entero("Dia del prestamo: ")
-                        mes_prestamo = leer_entero("Mes del prestamo: ")
-                        anio_prestamo = leer_entero("Año del prestamo: ")
-
-                        dia_devolucion = dia_prestamo + 7
-                        mes_devolucion = mes_prestamo
-                        anio_devolucion = anio_prestamo
-
-                        if dia_devolucion > 30:
-                            dia_devolucion -= 30
-                            mes_devolucion += 1
-
-                        if mes_devolucion > 12:
-                            mes_devolucion = 1
-                            anio_devolucion += 1
-
-                        for j in range(1, cantidad_libros + 1):
-                            print()
-                            print(f"Libro {j} de {cantidad_libros}")
-                            codigo_libro = leer_entero("Ingrese ID del libro (1-10): ")
-
-                            if 1 <= codigo_libro <= 10:
-                                idx = codigo_libro - 1
-                                if stock[idx] > 0:
-                                    prestamos.append({
-                                        "usuario": codigo_ingresado,
-                                        "libro": codigo_libro,
-                                        "dia": dia_prestamo,
-                                        "mes": mes_prestamo,
-                                        "anio": anio_prestamo,
-                                        "venc_dia": dia_devolucion,
-                                        "venc_mes": mes_devolucion,
-                                        "venc_anio": anio_devolucion,
-                                        "estado": "PRESTADO",
-                                        "cargo": 0,
-                                    })
-
-                                    stock[idx] -= 1
-
-                                    print("Libro agregado correctamente.")
-                                    print("Disponibles ahora:", stock[idx])
-
-                                else:
-                                    print("NO HAY EJEMPLARES DISPONIBLES.")
-
-                            else:
-                                print("ID de libro incorrecto.")
-
-                        print()
-                        print("=========================================")
-                        print("           RECIBO DE PRESTAMO")
-                        print("=========================================")
-                        print("Usuario:", codigo_ingresado)
-                        print(f"Fecha: {dia_prestamo}/{mes_prestamo}/{anio_prestamo}")
-                        print(f"Devolucion: {dia_devolucion}/{mes_devolucion}/{anio_devolucion}")
-                        print("-----------------------------------------")
-                        print("LIBROS PRESTADOS:")
-
-                        for p in prestamos:
-                            if p["usuario"] == codigo_ingresado and p["estado"] == "PRESTADO":
-                                print("-", libros[p["libro"] - 1])
-
-                        print("-----------------------------------------")
-                        print("Multa por atraso: L.100 por dia.")
-                        print("=========================================")
-
-                    else:
-                        print("Cantidad no valida. Debe ser de 1 a 5.")
-
-                    print()
-                    pausa("Presione ENTER para regresar.")
-
-                # ---------------- 3. Ver usuarios ----------------
-                elif op == "3":
-                    limpiar_pantalla()
-                    print("=========================================")
-                    print("        USUARIOS REGISTRADOS")
-                    print("=========================================")
-
-                    for idx_u, u in enumerate(usuarios, start=1):
-                        print()
-                        print(f"Usuario #{idx_u}")
-                        print("Nombre:", u["nombre"])
-                        print("Codigo:", u["codigo"])
-                        print("Telefono:", u["telefono"])
-                        print("-----------------------------------------")
-
-                        encontrado = False
-
-                        for p in prestamos:
-                            if p["usuario"] == u["codigo"]:
-                                encontrado = True
-                                print("Libro:", libros[p["libro"] - 1])
-                                print("Estado:", p["estado"])
-                                print(f"Prestamo: {p['dia']}/{p['mes']}/{p['anio']}")
-                                print(f"Vence: {p['venc_dia']}/{p['venc_mes']}/{p['venc_anio']}")
-                                print("Multa: L.", p["cargo"])
-                                print("-----------------------------------------")
-
-                        if not encontrado:
-                            print("Sin historial de prestamos.")
-
-                    print()
-                    pausa("Presione ENTER para regresar.")
-
-                # ---------------- 4. Devolver libro ----------------
-                elif op == "4":
-                    limpiar_pantalla()
-                    print("=========================================")
-                    print("             DEVOLUCION")
-                    print("=========================================")
-                    codigo_libro = leer_entero("ID del libro que desea devolver: ")
-
-                    dia_actual = leer_entero("Dia actual: ")
-                    mes_actual = leer_entero("Mes actual: ")
-                    anio_actual = leer_entero("Año actual: ")
-
-                    dias_actuales = anio_actual * 360 + mes_actual * 30 + dia_actual
-                    encontrado = False
-
-                    for p in prestamos:
-                        if (p["usuario"] == codigo_ingresado
-                                and p["libro"] == codigo_libro
-                                and p["estado"] == "PRESTADO"):
-
-                            encontrado = True
-
-                            dias_vencimiento = (p["venc_anio"] * 360
-                                                 + p["venc_mes"] * 30
-                                                 + p["venc_dia"])
-                            dias_atraso = dias_actuales - dias_vencimiento
-
-                            cargo = dias_atraso * 100 if dias_atraso > 0 else 0
-
-                            p["cargo"] = cargo
-                            p["estado"] = "DEVUELTO"
-                            stock[codigo_libro - 1] += 1
-
-                            print()
-                            print("=========================================")
-                            print("          DEVOLUCION COMPLETADA")
-                            print("=========================================")
-                            print("Usuario:", codigo_ingresado)
-                            print("Libro:", libros[codigo_libro - 1])
-                            print(f"Vencimiento: {p['venc_dia']}/{p['venc_mes']}/{p['venc_anio']}")
-                            print(f"Devolucion: {dia_actual}/{mes_actual}/{anio_actual}")
-                            print("Dias de atraso:", dias_atraso)
-                            print("Cargo total: L.", cargo)
-                            print("Disponibles ahora:", stock[codigo_libro - 1])
-                            print("Estado: DEVUELTO")
-                            print("=========================================")
-
-                    if not encontrado:
-                        print()
-                        print("No se encontro un prestamo activo")
-                        print("de este libro para este usuario.")
-
-                    print()
-                    pausa("Presione ENTER para regresar.")
-
-                # ---------------- 5. Ver alertas ----------------
-                elif op == "5":
-                    limpiar_pantalla()
-                    print("=========================================")
-                    print("          ALERTAS DE PRESTAMOS")
-                    print("=========================================")
-                    print("Aqui aparecen los prestamos de TODOS")
-                    print("los usuarios registrados.")
-                    print("=========================================")
-
-                    dia_actual = leer_entero("Dia actual: ")
-                    mes_actual = leer_entero("Mes actual: ")
-                    anio_actual = leer_entero("Año actual: ")
-
-                    dias_actuales = anio_actual * 360 + mes_actual * 30 + dia_actual
-                    encontrado = False
-
-                    for idx_p, p in enumerate(prestamos, start=1):
-                        if p["estado"] == "PRESTADO":
-
-                            encontrado = True
-
-                            dias_vencimiento = (p["venc_anio"] * 360
-                                                 + p["venc_mes"] * 30
-                                                 + p["venc_dia"])
-                            dias_atraso = dias_actuales - dias_vencimiento
-
-                            print()
-                            print("-----------------------------------------")
-                            print(f"PRESTAMO #{idx_p}")
-
-                            for u in usuarios:
-                                if u["codigo"] == p["usuario"]:
-                                    print("Usuario:", u["nombre"])
-                                    print("Codigo:", u["codigo"])
-                                    print("Telefono:", u["telefono"])
-
-                            print("Libro:", libros[p["libro"] - 1])
-                            print(f"Fecha de prestamo: {p['dia']}/{p['mes']}/{p['anio']}")
-                            print(f"Fecha de vencimiento: {p['venc_dia']}/{p['venc_mes']}/{p['venc_anio']}")
-
-                            if dias_atraso > 0:
-                                cargo = dias_atraso * 100
-                                p["cargo"] = cargo
-                                print("ESTADO: VENCIDO")
-                                print("Dias de atraso:", dias_atraso)
-                                print("Multa acumulada: L.", cargo)
-
-                            elif dias_atraso == 0:
-                                print("ESTADO: VENCE HOY")
-
-                            elif dias_atraso == -1:
-                                print("ESTADO: FALTA 1 DIA")
-
-                            elif dias_atraso == -2:
-                                print("ESTADO: FALTAN 2 DIAS")
-
-                            else:
-                                print("ESTADO: VIGENTE")
-                                print("Dias restantes:", -dias_atraso)
-
-                    if not encontrado:
-                        print()
-                        print("No existen prestamos activos.")
-
-                    print()
-                    print("=========================================")
-                    pausa("Presione ENTER para regresar.")
-
-                # ---------------- 0. Cerrar sesion ----------------
-                elif op == "0":
-                    limpiar_pantalla()
-                    print("=========================================")
-                    print("          CERRANDO SESION")
-                    print("=========================================")
-                    print("Los datos de la biblioteca se conservaran.")
-                    print("El siguiente usuario vera el stock actualizado.")
-                    print("=========================================")
-                    pausa()
-
-                    acceso = False
-
-                else:
-                    print()
-                    print("=========================================")
-                    print("          OPCION NO VALIDA")
-                    print("=========================================")
-                    print("Use solamente los numeros del menu.")
-                    pausa()
-
-
-if __name__ == "__main__":
-    main()
+                st.write(f"*{i + 1}. {st.session_state.libros[i]}* — ❌ *NO DISPONIBLE*")
+
+    # 2. Solicitar Préstamo
+    elif menu == "Solicitar préstamo":
+        st.header("📝 Solicitar Préstamo")
+        lib_id = st.selectbox("Seleccione el libro:", range(1, 11), format_func=lambda x: f"{x}. {st.session_state.libros[x-1]}")
+        
+        if st.button("Confirmar Préstamo"):
+            idx = lib_id - 1
+            if st.session_state.stock[idx] > 0:
+                st.session_state.stock[idx] -= 1
+                st.session_state.prestamos.append({
+                    "usuario": st.session_state.logged_user,
+                    "libro": lib_id,
+                    "estado": "PRESTADO"
+                })
+                st.success("¡Préstamo registrado con éxito!")
+            else:
+                st.error("No hay ejemplares disponibles de este libro.")
+
+    # 3. Ver Usuarios
+    elif menu == "Ver usuarios":
+        st.header("👥 Usuarios Registrados")
+        for u in st.session_state.usuarios:
+            st.write(f"- *{u['nombre']}* | Código: {u['codigo']} | Tel: {u['telefono']}")
+
+    # 4. Devolver Libro
+    elif menu == "Devolver libro":
+        st.header("🔄 Devolución de Libros")
+        mis_prestamos = [p for p in st.session_state.prestamos if p["usuario"] == st.session_state.logged_user and p["estado"] == "PRESTADO"]
+        
+        if mis_prestamos:
+            lib_dev = st.selectbox("Seleccione el libro a devolver:", [p["libro"] for p in mis_prestamos], format_func=lambda x: st.session_state.libros[x-1])
+            if st.button("Procesar Devolución"):
+                for p in st.session_state.prestamos:
+                    if p["usuario"] == st.session_state.logged_user and p["libro"] == lib_dev and p["estado"] == "PRESTADO":
+                        p["estado"] = "DEVUELTO"
+                        st.session_state.stock[lib_dev - 1] += 1
+                        st.success("¡Devolución completada con éxito!")
+                        st.rerun()
+        else:
+            st.info("No tienes préstamos activos en este momento.")
+
+    # 5. Ver Alertas
+    elif menu == "Ver alertas":
+        st.header("🚨 Alertas de Préstamos Activos")
+        activos = [p for p in st.session_state.prestamos if p["estado"] == "PRESTADO"]
+        if activos:
+            for p in activos:
+                st.write(f"- El usuario {p['usuario']} tiene prestado el libro: *{st.session_state.libros[p['libro']-1]}*")
+        else:
+            st.info("No existen préstamos activos actualmente."
