@@ -19,7 +19,7 @@ if "prestamos" not in st.session_state:
 if "logged_user" not in st.session_state:
     st.session_state.logged_user = None
 
-st.title("📚 Sistema de Gestión de Biblioteca")
+st.title("Sistema de Gestión de Biblioteca")
 
 # ----------------- ACCESO / LOGIN -----------------
 if not st.session_state.logged_user:
@@ -62,7 +62,7 @@ else:
 
     # 2. Solicitar Préstamo
     elif menu == "Solicitar préstamo":
-        st.header("📝 Solicitar Préstamo")
+        st.header("Solicitar Préstamo")
         lib_id = st.selectbox("Seleccione el libro:", range(1, 11), format_func=lambda x: f"{x}. {st.session_state.libros[x-1]}")
         
         if st.button("Confirmar Préstamo"):
@@ -80,13 +80,13 @@ else:
 
     # 3. Ver Usuarios
     elif menu == "Ver usuarios":
-        st.header("👥 Usuarios Registrados")
+        st.header("Usuarios Registrados")
         for u in st.session_state.usuarios:
             st.write(f"- *{u['nombre']}* | Código: {u['codigo']} | Tel: {u['telefono']}")
 
     # 4. Devolver Libro
     elif menu == "Devolver libro":
-        st.header("🔄 Devolución de Libros")
+        st.header("Devolución de Libros")
         mis_prestamos = [p for p in st.session_state.prestamos if p["usuario"] == st.session_state.logged_user and p["estado"] == "PRESTADO"]
         
         if mis_prestamos:
@@ -103,7 +103,7 @@ else:
 
     # 5. Ver Alertas
     elif menu == "Ver alertas":
-        st.header("🚨 Alertas de Préstamos Activos")
+        st.header("Alertas de Préstamos Activos")
         activos = [p for p in st.session_state.prestamos if p["estado"] == "PRESTADO"]
         if activos:
             for p in activos:
