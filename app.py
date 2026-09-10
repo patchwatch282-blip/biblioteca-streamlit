@@ -109,4 +109,4 @@ else:
             for p in activos:
                 st.write(f"- El usuario {p['usuario']} tiene prestado el libro: *{st.session_state.libros[p['libro']-1]}*")
         else:
-            st.info("No existen préstamos activos actualmente."
+            st.info("No existen préstamos activos actualmente.")
